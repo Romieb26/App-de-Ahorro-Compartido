@@ -12,3 +12,4 @@ data class TransactionEntity(
     val timestamp: Long,
     val status: String
 )
+//mensaje jajaja//
