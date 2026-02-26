@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "258776559887",
+    "project_id": "ahorrosoft-8ad41",
+    "storage_bucket": "ahorrosoft-8ad41.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258776559887:android:9359f47c28a362dcf98e7a",
+        "android_client_info": {
+          "package_name": "com.esba.ahorroscompartidos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5wp_b9UrzkOxnZZNAAmQd7S8GkkTqru4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
