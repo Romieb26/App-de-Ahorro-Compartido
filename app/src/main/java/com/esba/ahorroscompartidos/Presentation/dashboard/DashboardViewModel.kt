@@ -1,13 +1,16 @@
-package com.esba.ahorroscompartidos.Presentation.dashboard
+package com.esba.ahorroscompartidos.presentation.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.esba.ahorroscompartidos.presentation.dashboard.BankUiState
+import com.esba.ahorroscompartidos.presentation.dashboard.UiEvent
 import com.esba.ahorroscompartidos.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/*
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val getPersonalBalance: GetPersonalBalanceUseCase,
@@ -16,7 +19,7 @@ class DashboardViewModel @Inject constructor(
     private val transferToShared: TransferToSharedUseCase,
     private val withdrawFromShared: WithdrawFromSharedUseCase,
     private val depositPersonal: DepositPersonalUseCase,
-    private val withdrawPersonal: WithdrawPersonalUseCase
+    private val withdrawPersonalUseCase: WithdrawPersonalUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BankUiState())
@@ -36,10 +39,18 @@ class DashboardViewModel @Inject constructor(
                 getSharedBalance(),
                 observeTransactions()
             ) { personal, shared, transactions ->
-                BankUiState(personal, shared, transactions)
-            }.collect {
-                _uiState.value = it
+                BankUiState(
+                    personalBalance = personal ?: 0.0,
+                    sharedBalance = shared ?: 0.0,
+                    transactions = transactions ?: emptyList()
+                )
             }
+                .catch { e ->
+                    _events.emit(UiEvent.ShowError(e.message ?: "Error loading data"))
+                }
+                .collect { state ->
+                    _uiState.value = state
+                }
         }
     }
 
@@ -56,6 +67,7 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun withdrawPersonal(amount: Double) = launchSafe {
+        withdrawPersonalUseCase(amount)
     }
 
     private fun launchSafe(block: suspend () -> Unit) {
@@ -70,4 +82,4 @@ class DashboardViewModel @Inject constructor(
             }
         }
     }
-}
+}*/

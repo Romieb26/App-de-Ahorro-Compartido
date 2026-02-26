@@ -2,6 +2,7 @@ package com.esba.ahorroscompartidos.data.local.dao
 
 
 import androidx.room.*
+import androidx.room.Dao
 import com.esba.ahorroscompartidos.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
 

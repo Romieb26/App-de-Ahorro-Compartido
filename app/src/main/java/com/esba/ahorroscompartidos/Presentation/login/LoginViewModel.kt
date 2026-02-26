@@ -9,49 +9,52 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LoginUiState(
-        email = TODO(),
-        password = TODO(),
-        isLoging = TODO(),
-        isLoading = TODO()
-    ))
+    private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState
 
     private val _events = MutableSharedFlow<LoginEvent>()
     val events = _events.asSharedFlow()
 
-    fun onEmailChange(value: String) {
-        _uiState.update { it.copy(email = value) }
+    fun onEmailChange(email: String) {
+        _uiState.update { it.copy(email = email) }
     }
 
-    fun onPasswordChange(value: String) {
-        _uiState.update { it.copy(password = value) }
+    fun onPasswordChange(password: String) {
+        _uiState.update { it.copy(password = password) }
     }
 
     fun login() {
+        val email = _uiState.value.email
+        val password = _uiState.value.password
+
+        if (email.isBlank() || password.isBlank()) {
+            viewModelScope.launch {
+                _events.emit(LoginEvent.ShowError("Campos vacíos"))
+            }
+            return
+        }
+
         viewModelScope.launch {
-            try {
-                _uiState.update { it.copy(isLoading = true) }
 
-                loginUseCase(
-                    _uiState.value.email,
-                    _uiState.value.password
-                )
+            _uiState.update { it.copy(isLoading = true) }
 
+            val result = loginUseCase(email, password)
+
+            _uiState.update { it.copy(isLoading = false) }
+
+            result.onSuccess {
                 _events.emit(LoginEvent.LoginSuccess)
-
-            } catch (e: Exception) {
+            }.onFailure {
                 _events.emit(
-                    LoginEvent.ShowError(e.message ?: "Login error")
+                    LoginEvent.ShowError(
+                        it.message ?: "Error desconocido"
+                    )
                 )
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }

@@ -17,7 +17,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-/*
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -51,4 +50,4 @@ object AppModule {
         firestoreService: FirebaseFirestoreService
     ): BankRepository =
         BankRepositoryImpl(dao, authService, firestoreService)
-}*/
+}

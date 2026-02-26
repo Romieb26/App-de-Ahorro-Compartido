@@ -1,4 +1,4 @@
-package com.esba.ahorroscompartidos.Presentation.dashboard
+package com.esba.ahorroscompartidos.presentation.dashboard
 
 import com.esba.ahorroscompartidos.domain.model.Transaction
 

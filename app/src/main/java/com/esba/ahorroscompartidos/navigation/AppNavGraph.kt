@@ -2,11 +2,12 @@ package com.esba.ahorroscompartidos.navigation
 
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.Composable
+import androidx.core.splashscreen.SplashScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.esba.ahorroscompartidos.Presentation.dashboard.DashboardScreen
 import com.esba.ahorroscompartidos.Presentation.login.LoginScreen
-import com.esba.ahorroscompartidos.presentation.transactions.TransactionHistoryScreen
+import com.esba.ahorroscompartidos.Presentation.prueba.SplashScreen
 
 @Composable
 fun AppNavGraph() {
@@ -15,9 +16,26 @@ fun AppNavGraph() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.Login.route
+        startDestination = Routes.Splash.route   // 🔥 ahora empieza en Splash
     ) {
 
+        // 🔵 SPLASH
+        composable(Routes.Splash.route) {
+            SplashScreen(
+                onNavigateToLogin = {
+                    navController.navigate(Routes.Login.route) {
+                        popUpTo(Routes.Splash.route) { inclusive = true }
+                    }
+                },
+                onNavigateToHome = {
+                    navController.navigate(Routes.Dashboard.route) {
+                        popUpTo(Routes.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // 🔵 LOGIN
         composable(Routes.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
@@ -28,16 +46,11 @@ fun AppNavGraph() {
             )
         }
 
+        // 🔵 DASHBOARD
         composable(Routes.Dashboard.route) {
-            DashboardScreen(
-                onOpenHistory = {
-                    navController.navigate(Routes.History.route)
-                }
-            )
+            DashboardScreen() // usa el tuyo o uno temporal
         }
 
-        composable(Routes.History.route) {
-            TransactionHistoryScreen()
-        }
+
     }
 }
