@@ -1,4 +1,5 @@
 package com.esba.ahorroscompartidos.domain.usecase
+
 import com.esba.ahorroscompartidos.domain.repository.BankRepository
 import javax.inject.Inject
 

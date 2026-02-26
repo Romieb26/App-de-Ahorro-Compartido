@@ -2,6 +2,7 @@ package com.esba.ahorroscompartidos.domain.usecase
 
 import com.esba.ahorroscompartidos.domain.repository.BankRepository
 import java.time.temporal.TemporalAmount
+
 import javax.inject.Inject
 
 class DepositPersonalUseCase @Inject constructor(
@@ -11,4 +12,3 @@ class DepositPersonalUseCase @Inject constructor(
     repository.depositPersonal(amount)
     }
     }
-}

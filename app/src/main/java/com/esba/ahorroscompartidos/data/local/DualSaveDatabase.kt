@@ -1,5 +1,6 @@
 package com.esba.ahorroscompartidos.data.local
 
+
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.esba.ahorroscompartidos.data.local.dao.BankDao

@@ -5,10 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
@@ -16,6 +16,7 @@ fun LoginScreen(
 ) {
 
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -23,7 +24,7 @@ fun LoginScreen(
                 is LoginEvent.LoginSuccess -> onLoginSuccess()
                 is LoginEvent.ShowError ->
                     Toast.makeText(
-                        LocalContext.current,
+                        context,
                         event.message,
                         Toast.LENGTH_LONG
                     ).show()
@@ -59,9 +60,17 @@ fun LoginScreen(
 
         Button(
             onClick = { viewModel.login() },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !state.isLoading
         ) {
-            Text("Login")
+            if (state.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Login")
+            }
         }
     }
 }

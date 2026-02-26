@@ -1,9 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.devtools.ksp)
     alias(libs.plugins.hilt.android)
-    id("com.google.gms.google-services")
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -38,6 +38,8 @@ android {
         buildConfig = true
         resValues = true
     }
+
+
 }
 
 dependencies {
@@ -49,6 +51,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+   // Icons extendend
+    implementation(libs.androidx.navigation.compose)
     implementation(libs.hilt.android)                               // Implementación de Hilt
     implementation(libs.hilt.navigation.compose)                    // Integración con Jetpack Compose
     ksp(libs.hilt.compiler)

@@ -9,12 +9,18 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LoginUiState())
+    private val _uiState = MutableStateFlow(LoginUiState(
+        email = TODO(),
+        password = TODO(),
+        isLoging = TODO(),
+        isLoading = TODO()
+    ))
     val uiState: StateFlow<LoginUiState> = _uiState
 
     private val _events = MutableSharedFlow<LoginEvent>()

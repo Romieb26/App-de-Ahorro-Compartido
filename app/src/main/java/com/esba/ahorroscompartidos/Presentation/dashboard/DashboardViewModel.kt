@@ -56,7 +56,6 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun withdrawPersonal(amount: Double) = launchSafe {
-        withdrawPersonal(amount)
     }
 
     private fun launchSafe(block: suspend () -> Unit) {
