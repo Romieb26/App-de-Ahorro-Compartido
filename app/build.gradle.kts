@@ -53,6 +53,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    // Para íconos por defecto (ya debería estar incluida con compose)
+    implementation("androidx.compose.material:material-icons-core:1.6.8")
+// Para íconos extendidos (como ArrowBack)
+    implementation("androidx.compose.material:material-icons-extended:1.6.8")
 
    // Icons extendend
     implementation(libs.androidx.navigation.compose)
@@ -62,6 +66,9 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.compose.animation.core.lint)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.material3)
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     ksp(libs.hilt.compiler)
 
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
@@ -75,4 +82,5 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
 }

@@ -1,13 +1,12 @@
 package com.esba.ahorroscompartidos.navigation
 
-import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.Composable
-import androidx.core.splashscreen.SplashScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.esba.ahorroscompartidos.Presentation.dashboard.DashboardScreen
-import com.esba.ahorroscompartidos.Presentation.login.LoginScreen
-import com.esba.ahorroscompartidos.Presentation.prueba.SplashScreen
+import androidx.navigation.compose.rememberNavController
+import com.esba.ahorroscompartidos.Presentation.CuentaAhorro.screen.CuentaAhorroScreen
+import com.esba.ahorroscompartidos.Presentation.Historial.screen.HistorialScreen
+import com.esba.ahorroscompartidos.Presentation.login.screen.LoginScreen
 
 @Composable
 fun AppNavGraph() {
@@ -16,41 +15,40 @@ fun AppNavGraph() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.Splash.route   // 🔥 ahora empieza en Splash
+        startDestination = Routes.Login.route
     ) {
-
-        // 🔵 SPLASH
-        composable(Routes.Splash.route) {
-            SplashScreen(
-                onNavigateToLogin = {
-                    navController.navigate(Routes.Login.route) {
-                        popUpTo(Routes.Splash.route) { inclusive = true }
-                    }
-                },
-                onNavigateToHome = {
-                    navController.navigate(Routes.Dashboard.route) {
-                        popUpTo(Routes.Splash.route) { inclusive = true }
-                    }
-                }
-            )
-        }
 
         // 🔵 LOGIN
         composable(Routes.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(Routes.Dashboard.route) {
+                    navController.navigate(Routes.CuentaAhorro.route) {
                         popUpTo(Routes.Login.route) { inclusive = true }
                     }
                 }
             )
         }
 
-        // 🔵 DASHBOARD
-        composable(Routes.Dashboard.route) {
-            DashboardScreen() // usa el tuyo o uno temporal
+        // 🔵 CUENTA AHORRO
+        composable(Routes.CuentaAhorro.route) {
+            CuentaAhorroScreen(
+                onBackToLogin = {
+                    navController.navigate(Routes.Login.route) {
+                        popUpTo(Routes.CuentaAhorro.route) { inclusive = true }
+                    }
+                },
+                onNavigateToHistorial = {
+                    navController.navigate(Routes.Historial.route)
+                }
+            )
         }
 
-
+        composable(Routes.Historial.route) {
+            HistorialScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
