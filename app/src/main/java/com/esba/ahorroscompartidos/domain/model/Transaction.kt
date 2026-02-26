@@ -1,10 +1,10 @@
 package com.esba.ahorroscompartidos.domain.model
 
-@Entity(tableName = "transactions")
-data class TransactionEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+data class Transaction(
+    val id: String,
+    val fromUserId: String,
+    val type: TransactionType,
     val amount: Double,
-    val type: String,
-    val timestamp: Long
+    val timestamp: Long,
+    val status: TransactionStatus
 )
