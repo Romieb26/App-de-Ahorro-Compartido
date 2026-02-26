@@ -4,4 +4,6 @@ data class UserAccount(
     val id: String,
     val name: String,
     val personalBalence: Double
-)
+) {
+    val personalBalance: Double
+}

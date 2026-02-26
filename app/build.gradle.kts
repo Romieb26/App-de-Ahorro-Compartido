@@ -55,11 +55,13 @@ dependencies {
    // Icons extendend
     implementation(libs.androidx.navigation.compose)
     implementation(libs.hilt.android)                               // Implementación de Hilt
-    implementation(libs.hilt.navigation.compose)                    // Integración con Jetpack Compose
+    implementation(libs.hilt.navigation.compose)
+    implementation(libs.firebase.auth.ktx)                    // Integración con Jetpack Compose
     ksp(libs.hilt.compiler)
 
     implementation(platform("com.google.firebase:firebase-bom:34.9.0"))
     implementation("com.google.firebase:firebase-analytics")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

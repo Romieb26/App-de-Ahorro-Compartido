@@ -9,6 +9,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
@@ -73,4 +75,11 @@ fun LoginScreen(
             }
         }
     }
+}
+@Preview(showBackground = true)
+@Composable
+fun LoginPreview() {
+    LoginScreen(
+        onLoginSuccess = {}
+    )
 }
