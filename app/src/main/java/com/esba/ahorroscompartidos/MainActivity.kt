@@ -1,3 +1,4 @@
+//MainActivity.kt
 package com.esba.ahorroscompartidos
 
 import android.os.Bundle

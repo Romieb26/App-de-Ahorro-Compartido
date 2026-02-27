@@ -1,3 +1,4 @@
+//GetPersonalBalanceUseCase.kt
 package com.esba.ahorroscompartidos.domain.usecase
 
 import com.esba.ahorroscompartidos.domain.repository.BankRepository
@@ -9,5 +10,5 @@ class GetPersonalBalanceUseCase @Inject constructor(
     private val repository: BankRepository
 ) {
     operator fun invoke(): Flow<Double> =
-        repository.observeUserAccount().map { it.personalBalance }
+        repository.observeUserAccount().map { it?.personalBalance ?: 0.0 }
 }

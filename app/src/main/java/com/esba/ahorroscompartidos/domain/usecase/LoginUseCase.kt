@@ -1,3 +1,4 @@
+//LoginUseCase.kt
 package com.esba.ahorroscompartidos.domain.usecase
 
 import com.esba.ahorroscompartidos.domain.repository.AuthRepository

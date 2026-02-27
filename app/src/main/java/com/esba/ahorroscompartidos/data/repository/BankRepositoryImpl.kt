@@ -1,230 +1,315 @@
+//BankRepositoryImpl.kt
 package com.esba.ahorroscompartidos.data.repository
 
-import com.esba.ahorroscompartidos.data.local.dao.BankDao
-import com.esba.ahorroscompartidos.data.mapper.*
-import com.esba.ahorroscompartidos.data.remote.FirebaseAuthService
-import com.esba.ahorroscompartidos.data.remote.FirebaseFirestoreService
-import com.esba.ahorroscompartidos.domain.model.*
+import com.esba.ahorroscompartidos.data.remote.FirebaseAuthDataSource
+import com.esba.ahorroscompartidos.data.remote.FirebaseRealtimeService
+import com.esba.ahorroscompartidos.domain.model.SharedAccount
+import com.esba.ahorroscompartidos.domain.model.Transaction
+import com.esba.ahorroscompartidos.domain.model.TransactionStatus
+import com.esba.ahorroscompartidos.domain.model.TransactionType
+import com.esba.ahorroscompartidos.domain.model.UserAccount
 import com.esba.ahorroscompartidos.domain.repository.BankRepository
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import java.util.UUID
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOf
+import timber.log.Timber
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class BankRepositoryImpl @Inject constructor(
-    private val dao: BankDao,
-    private val authService: FirebaseAuthService,
-    private val firestore: FirebaseFirestoreService
+    private val authDataSource: FirebaseAuthDataSource,
+    private val realtimeService: FirebaseRealtimeService
 ) : BankRepository {
 
-    private val mutex = Mutex()
+    override fun observeUserAccount(): Flow<UserAccount?> {
+        val userId = authDataSource.getCurrentUserId()
+            ?: return flowOf(null).also {
+                Timber.w("⚠️ observeUserAccount: No hay usuario autenticado")
+            }
 
-    override fun observeUserAccount(): Flow<UserAccount> =
-        dao.observeUser().map { it.toDomain() }
+        Timber.d("📡 observeUserAccount: Iniciando para userId: $userId")
 
-    override fun observeSharedAccount(): Flow<SharedAccount> =
-        dao.observeShared().map { it.toDomain() }
+        return realtimeService.observeUser(userId)
+            .catch { e ->
+                Timber.e(e, "❌ Error en observeUserAccount")
+                emit(null)
+            }
+            .map { data ->
+                if (data == null) {
+                    Timber.w("⚠️ observeUserAccount: Datos recibidos son null")
+                    return@map null
+                }
 
-    override fun observeTransactions(): Flow<List<Transaction>> =
-        dao.observeTransactions().map { list -> list.map { it.toDomain() } }
+                Timber.d("📊 observeUserAccount: Datos crudos recibidos: $data")
+
+                try {
+                    // Extraer valores de forma segura
+                    val personalBalance = when (val balance = data["personalBalance"]) {
+                        is Double -> balance
+                        is Long -> balance.toDouble()
+                        is Int -> balance.toDouble()
+                        else -> {
+                            Timber.w("⚠️ personalBalance no es número, es: ${balance?.javaClass}")
+                            0.0
+                        }
+                    }
+
+                    val sharedAccountId = data["sharedAccountId"] as? String ?: "main"
+
+                    UserAccount(
+                        id = userId,
+                        personalBalance = personalBalance,
+                        sharedAccountId = sharedAccountId
+                    ).also {
+                        Timber.d("✅ UserAccount mapeado: $it")
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Error mapeando UserAccount")
+                    null
+                }
+            }
+    }
+
+    override fun observeSharedAccount(): Flow<SharedAccount?> {
+        Timber.d("📡 observeSharedAccount: Iniciando")
+
+        return realtimeService.observeSharedAccount()
+            .catch { e ->
+                Timber.e(e, "❌ Error en observeSharedAccount")
+                emit(null)
+            }
+            .map { data ->
+                if (data == null || data.isEmpty()) {
+                    Timber.w("⚠️ observeSharedAccount: Datos vacíos o nulos")
+                    return@map null
+                }
+
+                Timber.d("📊 observeSharedAccount: Datos crudos recibidos: $data")
+
+                try {
+                    val balance = when (val bal = data["balance"]) {
+                        is Double -> bal
+                        is Long -> bal.toDouble()
+                        is Int -> bal.toDouble()
+                        else -> {
+                            Timber.w("⚠️ balance no es número, es: ${bal?.javaClass}")
+                            0.0
+                        }
+                    }
+
+                    SharedAccount(
+                        id = "main",
+                        balance = balance
+                    ).also {
+                        Timber.d("✅ SharedAccount mapeado: $it")
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Error mapeando SharedAccount")
+                    null
+                }
+            }
+    }
+
+    override fun observeTransactions(): Flow<List<Transaction>> {
+        Timber.d("📡 observeTransactions: Iniciando")
+
+        return realtimeService.observeTransactions()
+            .catch { e ->
+                Timber.e(e, "❌ Error en observeTransactions")
+                emit(emptyList())
+            }
+            .map { list ->
+                Timber.d("📊 observeTransactions: ${list.size} transacciones crudas recibidas")
+
+                list.mapNotNull { data ->
+                    try {
+                        val id = data["id"] as? String ?: return@mapNotNull null
+                        val fromUserId = data["fromUser"] as? String ?: ""
+                        val typeStr = data["type"] as? String ?: return@mapNotNull null
+                        val amount = when (val amt = data["amount"]) {
+                            is Double -> amt
+                            is Long -> amt.toDouble()
+                            is Int -> amt.toDouble()
+                            else -> {
+                                Timber.w("⚠️ amount no es número en transacción $id")
+                                0.0
+                            }
+                        }
+                        val timestamp = data["timestamp"] as? Long ?: System.currentTimeMillis()
+                        val statusStr = data["status"] as? String ?: "CONFIRMED"
+
+                        // Convertir String a Enum de forma segura
+                        val type = try {
+                            TransactionType.valueOf(typeStr)
+                        } catch (e: IllegalArgumentException) {
+                            Timber.w("⚠️ Tipo de transacción desconocido: $typeStr")
+                            return@mapNotNull null
+                        }
+
+                        val status = try {
+                            TransactionStatus.valueOf(statusStr)
+                        } catch (e: IllegalArgumentException) {
+                            Timber.w("⚠️ Estado de transacción desconocido: $statusStr")
+                            TransactionStatus.CONFIRMED // Valor por defecto
+                        }
+
+                        Transaction(
+                            id = id,
+                            fromUserId = fromUserId,
+                            type = type,
+                            amount = amount,
+                            timestamp = timestamp,
+                            status = status
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "❌ Error parseando transacción")
+                        null
+                    }
+                }.also {
+                    Timber.d("✅ ${it.size} transacciones mapeadas correctamente")
+                }
+            }
+    }
 
     override suspend fun transferToShared(amount: Double) {
-        mutex.withLock {
+        val userId = getCurrentUserId() ?: throw Exception("Usuario no autenticado")
+        Timber.d("💱 transferToShared: $amount por usuario $userId")
 
-            val user = dao.observeUser().first()
-            val shared = dao.observeShared().first()
+        try {
+            // Verificar saldo y ejecutar transferencia
+            realtimeService.executeTransfer(userId, amount) { personal, shared ->
+                if (personal < amount) {
+                    throw Exception("Saldo insuficiente para transferir")
+                }
+                Pair(personal - amount, shared + amount)
+            }
 
-            if (user.personalBalance < amount)
-                throw Exception("Saldo insuficiente")
-
-            val transaction = createTransaction(
-                user.id,
-                TransactionType.TRANSFER_TO_SHARED,
-                amount
+            // Registrar transacción
+            val transaction = mapOf(
+                "type" to TransactionType.TRANSFER_TO_SHARED.name,
+                "fromUser" to userId,
+                "amount" to amount,
+                "status" to TransactionStatus.CONFIRMED.name
             )
 
-            dao.updateUser(user.copy(personalBalance = user.personalBalance - amount))
-            dao.updateShared(shared.copy(balance = shared.balance + amount))
-            dao.insertTransaction(transaction.toEntity())
-
-            try {
-
-                syncWithFirebase(
-                    user.id,
-                    user.personalBalance - amount,
-                    shared.balance + amount,
-                    transaction
-                )
-
-                confirmTransaction(transaction)
-
-            } catch (e: Exception) {
-
-                rollback(user, shared, transaction)
-                throw e
-            }
+            realtimeService.addTransaction(transaction)
+            Timber.d("✅ transferToShared completado")
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Error en transferToShared")
+            throw e
         }
     }
 
     override suspend fun withdrawFromShared(amount: Double) {
-        mutex.withLock {
+        val userId = getCurrentUserId() ?: throw Exception("Usuario no autenticado")
+        Timber.d("💱 withdrawFromShared: $amount por usuario $userId")
 
-            val user = dao.observeUser().first()
-            val shared = dao.observeShared().first()
+        try {
+            realtimeService.executeTransfer(userId, amount) { personal, shared ->
+                if (shared < amount) {
+                    throw Exception("Fondos insuficientes en cuenta compartida")
+                }
+                Pair(personal + amount, shared - amount)
+            }
 
-            if (shared.balance < amount)
-                throw Exception("Saldo compartido insuficiente")
-
-            val transaction = createTransaction(
-                user.id,
-                TransactionType.WITHDRAW_SHARED,
-                amount
+            val transaction = mapOf(
+                "type" to TransactionType.WITHDRAW_SHARED.name,
+                "fromUser" to userId,
+                "amount" to amount,
+                "status" to TransactionStatus.CONFIRMED.name
             )
 
-            dao.updateUser(user.copy(personalBalance = user.personalBalance + amount))
-            dao.updateShared(shared.copy(balance = shared.balance - amount))
-            dao.insertTransaction(transaction.toEntity())
-
-            try {
-
-                syncWithFirebase(
-                    user.id,
-                    user.personalBalance + amount,
-                    shared.balance - amount,
-                    transaction
-                )
-
-                confirmTransaction(transaction)
-
-            } catch (e: Exception) {
-
-                rollback(user, shared, transaction)
-                throw e
-            }
+            realtimeService.addTransaction(transaction)
+            Timber.d("✅ withdrawFromShared completado")
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Error en withdrawFromShared")
+            throw e
         }
     }
 
     override suspend fun depositPersonal(amount: Double) {
-        mutex.withLock {
+        val userId = getCurrentUserId() ?: throw Exception("Usuario no autenticado")
+        Timber.d("💱 depositPersonal: $amount por usuario $userId")
 
-            val user = dao.observeUser().first()
-            val shared = dao.observeShared().first()
+        try {
+            val user = realtimeService.getUser(userId)
+            val personal = when (val bal = user?.get("personalBalance")) {
+                is Double -> bal
+                is Long -> bal.toDouble()
+                is Int -> bal.toDouble()
+                else -> 0.0
+            }
 
-            val transaction = createTransaction(
-                user.id,
-                TransactionType.DEPOSIT_PERSONAL,
-                amount
+            val sharedAccount = realtimeService.getSharedAccount()
+            val shared = when (val bal = sharedAccount?.get("balance")) {
+                is Double -> bal
+                is Long -> bal.toDouble()
+                is Int -> bal.toDouble()
+                else -> 0.0
+            }
+
+            realtimeService.updateBalances(userId, personal + amount, shared)
+
+            val transaction = mapOf(
+                "type" to TransactionType.DEPOSIT_PERSONAL.name,
+                "fromUser" to userId,
+                "amount" to amount,
+                "status" to TransactionStatus.CONFIRMED.name
             )
 
-            dao.updateUser(user.copy(personalBalance = user.personalBalance + amount))
-            dao.insertTransaction(transaction.toEntity())
-
-            try {
-
-                syncWithFirebase(
-                    user.id,
-                    user.personalBalance + amount,
-                    shared.balance,
-                    transaction
-                )
-
-                confirmTransaction(transaction)
-
-            } catch (e: Exception) {
-
-                rollback(user, shared, transaction)
-                throw e
-            }
+            realtimeService.addTransaction(transaction)
+            Timber.d("✅ depositPersonal completado")
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Error en depositPersonal")
+            throw e
         }
     }
 
     override suspend fun withdrawPersonal(amount: Double) {
-        mutex.withLock {
+        val userId = getCurrentUserId() ?: throw Exception("Usuario no autenticado")
+        Timber.d("💱 withdrawPersonal: $amount por usuario $userId")
 
-            val user = dao.observeUser().first()
-            val shared = dao.observeShared().first()
+        try {
+            val user = realtimeService.getUser(userId)
+            val personal = when (val bal = user?.get("personalBalance")) {
+                is Double -> bal
+                is Long -> bal.toDouble()
+                is Int -> bal.toDouble()
+                else -> 0.0
+            }
 
-            if (user.personalBalance < amount)
+            if (personal < amount) {
                 throw Exception("Saldo personal insuficiente")
+            }
 
-            val transaction = createTransaction(
-                user.id,
-                TransactionType.WITHDRAW_PERSONAL,
-                amount
+            val sharedAccount = realtimeService.getSharedAccount()
+            val shared = when (val bal = sharedAccount?.get("balance")) {
+                is Double -> bal
+                is Long -> bal.toDouble()
+                is Int -> bal.toDouble()
+                else -> 0.0
+            }
+
+            realtimeService.updateBalances(userId, personal - amount, shared)
+
+            val transaction = mapOf(
+                "type" to TransactionType.WITHDRAW_PERSONAL.name,
+                "fromUser" to userId,
+                "amount" to amount,
+                "status" to TransactionStatus.CONFIRMED.name
             )
 
-            dao.updateUser(user.copy(personalBalance = user.personalBalance - amount))
-            dao.insertTransaction(transaction.toEntity())
-
-            try {
-
-                syncWithFirebase(
-                    user.id,
-                    user.personalBalance - amount,
-                    shared.balance,
-                    transaction
-                )
-
-                confirmTransaction(transaction)
-
-            } catch (e: Exception) {
-
-                rollback(user, shared, transaction)
-                throw e
-            }
+            realtimeService.addTransaction(transaction)
+            Timber.d("✅ withdrawPersonal completado")
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Error en withdrawPersonal")
+            throw e
         }
     }
 
-    private fun createTransaction(
-        userId: String,
-        type: TransactionType,
-        amount: Double
-    ) = Transaction(
-        id = UUID.randomUUID().toString(),
-        fromUserId = userId,
-        type = type,
-        amount = amount,
-        timestamp = System.currentTimeMillis(),
-        status = TransactionStatus.PENDING
-    )
-
-    private suspend fun syncWithFirebase(
-        userId: String,
-        newPersonal: Double,
-        newShared: Double,
-        transaction: Transaction
-    ) {
-
-        firestore.updateBalances(userId, newPersonal, newShared)
-
-        firestore.addTransaction(
-            mapOf(
-                "id" to transaction.id,
-                "fromUserId" to userId,
-                "type" to transaction.type.name,
-                "amount" to transaction.amount,
-                "timestamp" to transaction.timestamp,
-                "status" to TransactionStatus.CONFIRMED.name
-            )
-        )
-    }
-
-    private suspend fun confirmTransaction(transaction: Transaction) {
-        dao.updateTransaction(
-            transaction.copy(status = TransactionStatus.CONFIRMED).toEntity()
-        )
-    }
-
-    private suspend fun rollback(
-        originalUser: com.esba.ahorroscompartidos.data.local.entity.UserAccountEntity,
-        originalShared: com.esba.ahorroscompartidos.data.local.entity.SharedAccountEntity,
-        transaction: Transaction
-    ) {
-        dao.updateUser(originalUser)
-        dao.updateShared(originalShared)
-        dao.updateTransaction(
-            transaction.copy(status = TransactionStatus.FAILED).toEntity()
-        )
+    override suspend fun getCurrentUserId(): String? {
+        return authDataSource.getCurrentUserId()
     }
 }

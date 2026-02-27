@@ -1,18 +1,30 @@
+//firebaseAuthDataSource.kt
 package com.esba.ahorroscompartidos.data.remote
 
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
 
-class FirebaseAuthDataSource(
+class FirebaseAuthDataSource @Inject constructor(
     private val firebaseAuth: FirebaseAuth
 ) {
 
-    suspend fun login(email: String, password: String) {
-        firebaseAuth.signInWithEmailAndPassword(email, password).await()
+    suspend fun login(email: String, password: String): Result<String> {
+        return try {
+            val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
+            Result.success(result.user?.uid ?: "")
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    suspend fun register(email: String, password: String) {
-        firebaseAuth.createUserWithEmailAndPassword(email, password).await()
+    suspend fun register(email: String, password: String): Result<String> {
+        return try {
+            val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
+            Result.success(result.user?.uid ?: "")
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     fun getCurrentUserId(): String? = firebaseAuth.currentUser?.uid

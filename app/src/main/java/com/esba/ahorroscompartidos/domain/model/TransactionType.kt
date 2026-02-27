@@ -1,3 +1,4 @@
+//TransactionType.kt
 package com.esba.ahorroscompartidos.domain.model
 
 enum class TransactionType {

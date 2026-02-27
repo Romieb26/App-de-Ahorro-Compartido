@@ -1,3 +1,4 @@
+//Transaction.kt
 package com.esba.ahorroscompartidos.domain.model
 
 data class Transaction(
