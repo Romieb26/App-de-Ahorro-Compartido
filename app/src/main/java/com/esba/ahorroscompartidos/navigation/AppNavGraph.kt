@@ -5,9 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.esba.ahorroscompartidos.Presentation.CuentaAhorro.screen.CuentaAhorroScreen
-import com.esba.ahorroscompartidos.Presentation.Historial.screen.HistorialScreen
-import com.esba.ahorroscompartidos.Presentation.login.screen.LoginScreen
+import com.esba.ahorroscompartidos.presentation.cuentaahorro.screen.CuentaAhorroScreen
+import com.esba.ahorroscompartidos.presentation.historial.screen.HistorialScreen
+import com.esba.ahorroscompartidos.presentation.login.screen.LoginScreen
 
 @Composable
 fun AppNavGraph() {
